@@ -217,7 +217,7 @@ class CustomerMainActivity : AppCompatActivity() {
             val sdk = com.atheer.sdk.AtheerSdk.getInstance()
             // SDK HCE service preparation
         } catch (e: Exception) {
-            // SDK غير مهيأ
+            android.util.Log.w("CustomerMain", "SDK not initialized for HCE: ${e.message}")
         }
 
         dialog.show()

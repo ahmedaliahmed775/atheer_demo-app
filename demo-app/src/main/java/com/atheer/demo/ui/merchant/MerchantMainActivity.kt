@@ -300,7 +300,7 @@ class MerchantMainActivity : AppCompatActivity() {
                 // SDK sync logic would go here
                 loadHistory()
             } catch (e: Exception) {
-                // خطأ في المزامنة
+                android.util.Log.e("MerchantMain", "Sync failed: ${e.message}", e)
             } finally {
                 binding.btnSyncNow.isEnabled = true
                 binding.btnSyncNow.text = getString(R.string.btn_sync_now)

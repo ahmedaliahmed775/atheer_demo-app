@@ -163,7 +163,13 @@ class MerchantMainActivity : AppCompatActivity() {
 
                 runOnUiThread {
                     stopNfcReading()
-                    processCharge(amount, transaction.tokenizedCard, merchantId)
+                    val token = transaction.tokenizedCard
+                    if (token != null) {
+                        processCharge(amount, token, merchantId)
+                    } else {
+                        android.util.Log.e("MerchantMain", "NFC token is null, cannot process charge")
+                        binding.tvMerchantStatus.text = getString(R.string.charge_failed)
+                    }
                 }
             },
             errorCallback = { error ->

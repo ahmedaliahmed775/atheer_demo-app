@@ -7,11 +7,14 @@ import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import com.atheer.demo.R
+import com.atheer.demo.data.local.TokenManager
+import com.atheer.demo.ui.customer.CustomerMainActivity
 import com.atheer.demo.ui.login.LoginActivity
+import com.atheer.demo.ui.merchant.MerchantMainActivity
 
 /**
  * SplashActivity — شاشة البداية
- * تعرض شعار التطبيق لمدة ثانيتين ثم تنتقل إلى شاشة تسجيل الدخول
+ * تعرض شعار التطبيق لمدة ثانيتين ثم تنتقل حسب حالة المستخدم
  */
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
@@ -21,7 +24,16 @@ class SplashActivity : AppCompatActivity() {
         setContentView(R.layout.activity_splash)
 
         Handler(Looper.getMainLooper()).postDelayed({
-            startActivity(Intent(this, LoginActivity::class.java))
+            val tokenManager = TokenManager(this)
+            val intent = if (tokenManager.isLoggedIn()) {
+                when (tokenManager.getUserRole()) {
+                    "merchant" -> Intent(this, MerchantMainActivity::class.java)
+                    else -> Intent(this, CustomerMainActivity::class.java)
+                }
+            } else {
+                Intent(this, LoginActivity::class.java)
+            }
+            startActivity(intent)
             finish()
         }, SPLASH_DELAY_MS)
     }

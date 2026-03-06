@@ -5,35 +5,46 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.atheer.demo.R
+import com.atheer.demo.data.local.TokenManager
+import com.atheer.demo.data.model.LoginRequest
+import com.atheer.demo.data.network.RetrofitClient
 import com.atheer.demo.databinding.ActivityLoginBinding
-import com.atheer.demo.ui.dashboard.DashboardActivity
-import kotlinx.coroutines.delay
+import com.atheer.demo.ui.customer.CustomerMainActivity
+import com.atheer.demo.ui.merchant.MerchantMainActivity
 import kotlinx.coroutines.launch
 
 /**
  * LoginActivity — شاشة تسجيل الدخول
  *
- * بعد التحقق من بيانات التاجر يُفتح DashboardActivity حيث
- * يختار المستخدم المسار (عميل أو نقطة مبيعات).
- *
- * بيانات تجريبية افتراضية:
- *   رقم التاجر : MERCHANT_001
- *   كلمة المرور: 1234
+ * تستخدم Retrofit للاتصال بـ /auth/login
+ * وتوجّه المستخدم حسب الدور:
+ *   - customer → CustomerMainActivity
+ *   - merchant → MerchantMainActivity
  */
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
+    private lateinit var tokenManager: TokenManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        tokenManager = TokenManager(this)
+
+        // إذا كان المستخدم مسجل دخوله بالفعل
+        if (tokenManager.isLoggedIn()) {
+            navigateByRole(tokenManager.getUserRole() ?: "customer")
+            return
+        }
+
         binding.btnLogin.setOnClickListener { attemptLogin() }
     }
 
     private fun attemptLogin() {
-        val merchantId = binding.etMerchantId.text?.toString()?.trim() ?: ""
+        val email = binding.etMerchantId.text?.toString()?.trim() ?: ""
         val password = binding.etPassword.text?.toString()?.trim() ?: ""
 
         // إخفاء رسالة الخطأ السابقة
@@ -42,63 +53,53 @@ class LoginActivity : AppCompatActivity() {
         binding.tilPassword.error = null
 
         // التحقق من عدم الفراغ
-        if (merchantId.isEmpty() || password.isEmpty()) {
-            binding.tvError.text = getString(com.atheer.demo.R.string.login_error_empty)
+        if (email.isEmpty() || password.isEmpty()) {
+            binding.tvError.text = getString(R.string.login_error_empty)
             binding.tvError.visibility = View.VISIBLE
             return
         }
 
-        // التحقق من صحة البيانات التجريبية
-        if (!isValidCredentials(merchantId, password)) {
-            binding.tvError.text = getString(com.atheer.demo.R.string.login_error_invalid)
-            binding.tvError.visibility = View.VISIBLE
-            return
-        }
-
-        // تعطيل زر الدخول أثناء محاكاة طلب الشبكة
+        // تعطيل زر الدخول أثناء الطلب
         binding.btnLogin.isEnabled = false
+        binding.tvError.visibility = View.GONE
 
-        // محاكاة اتصال شبكي لعملية Login مع توليد Access Token وهمي
         lifecycleScope.launch {
-            // محاكاة وقت استجابة الخادم
-            delay(1500)
+            try {
+                val apiService = RetrofitClient.getApiService(tokenManager)
+                val response = apiService.login(LoginRequest(email, password))
 
-            // توليد Access Token وهمي يشبه صيغة JWT
-            val fakeAccessToken = generateMockJwtToken(merchantId)
+                if (response.isSuccessful && response.body() != null) {
+                    val loginResponse = response.body()!!
 
-            // الانتقال إلى لوحة التحكم مع تمرير رقم التاجر والـ Token
-            val intent = Intent(this@LoginActivity, DashboardActivity::class.java).apply {
-                putExtra(DashboardActivity.EXTRA_MERCHANT_ID, merchantId)
-                putExtra(DashboardActivity.EXTRA_ACCESS_TOKEN, fakeAccessToken)
+                    // حفظ التوكن والدور
+                    tokenManager.saveAccessToken(loginResponse.accessToken)
+                    tokenManager.saveUserRole(loginResponse.role)
+                    loginResponse.user?.let { user ->
+                        user.name?.let { tokenManager.saveUserName(it) }
+                        user.email?.let { tokenManager.saveUserEmail(it) }
+                    }
+
+                    navigateByRole(loginResponse.role)
+                } else {
+                    binding.tvError.text = getString(R.string.login_error_invalid)
+                    binding.tvError.visibility = View.VISIBLE
+                    binding.btnLogin.isEnabled = true
+                }
+            } catch (e: Exception) {
+                // التعامل مع أخطاء الشبكة — الوضع غير المتصل
+                binding.tvError.text = getString(R.string.error_network)
+                binding.tvError.visibility = View.VISIBLE
+                binding.btnLogin.isEnabled = true
             }
-            startActivity(intent)
-            finish()
         }
     }
 
-    /**
-     * توليد Access Token وهمي بصيغة JWT للمحاكاة التجريبية.
-     * في التطبيق الحقيقي يُستبدل هذا برد الخادم الفعلي.
-     */
-    private fun generateMockJwtToken(merchantId: String): String {
-        val header = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
-        val payload = android.util.Base64.encodeToString(
-            """{"sub":"$merchantId","iat":${System.currentTimeMillis() / 1000},"exp":${System.currentTimeMillis() / 1000 + 3600},"iss":"atheer-auth-server"}""".toByteArray(),
-            android.util.Base64.NO_WRAP or android.util.Base64.URL_SAFE
-        )
-        val signature = "AtheerSDK_MockSignature_${merchantId.hashCode()}"
-        return "$header.$payload.$signature"
-    }
-
-    /**
-     * في التطبيق الحقيقي يُستبدل هذا بطلب شبكة عبر Atheer SDK.
-     * هنا نستخدم بيانات ثابتة للعرض التجريبي.
-     */
-    private fun isValidCredentials(merchantId: String, password: String): Boolean =
-        merchantId == DEMO_MERCHANT_ID && password == DEMO_PASSWORD
-
-    companion object {
-        private const val DEMO_MERCHANT_ID = "MERCHANT_001"
-        private const val DEMO_PASSWORD = "1234"
+    private fun navigateByRole(role: String) {
+        val intent = when (role) {
+            "merchant" -> Intent(this, MerchantMainActivity::class.java)
+            else -> Intent(this, CustomerMainActivity::class.java)
+        }
+        startActivity(intent)
+        finish()
     }
 }

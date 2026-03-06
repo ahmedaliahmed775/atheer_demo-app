@@ -52,4 +52,12 @@
         <item name="cardBackgroundColor">@color/card_background</item>
     </style>
 
+    <!-- ثيم شفاف لشاشة نجاح الدفع -->
+    <style name="Theme.AtheerDemo.Translucent" parent="Theme.AtheerDemo">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
 </resources>

@@ -10,6 +10,10 @@
     <!-- صلاحيات الشبكة -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- صلاحية الاهتزاز -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- صلاحية البيومترية -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <!-- NFC اختياري حتى يعمل التطبيق على أجهزة بدون NFC -->
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
@@ -46,6 +50,16 @@
             android:name=".ui.dashboard.DashboardActivity"
             android:exported="false" />
 
+        <!-- الشاشة الرئيسية للعميل -->
+        <activity
+            android:name=".ui.customer.CustomerMainActivity"
+            android:exported="false" />
+
+        <!-- الشاشة الرئيسية للتاجر -->
+        <activity
+            android:name=".ui.merchant.MerchantMainActivity"
+            android:exported="false" />
+
         <!-- مسار العميل: محاكاة البطاقة (HCE) -->
         <activity
             android:name=".ui.customer.CustomerActivity"
@@ -60,6 +74,12 @@
         <activity
             android:name=".ui.result.TransactionResultActivity"
             android:exported="false" />
+
+        <!-- شاشة نجاح الدفع (شفافة) -->
+        <activity
+            android:name=".ui.payment.PaymentSuccessActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AtheerDemo.Translucent" />
 
     </application>
 

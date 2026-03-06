@@ -46,8 +46,8 @@ android {
 }
 
 dependencies {
-    // تضمين مكتبة Atheer SDK مباشرةً من الوحدة المحلية
-    implementation(project(":atheer-sdk"))
+    // تضمين مكتبة Atheer SDK من ملف AAR
+    implementation(files("libs/atheer-sdk-release.aar"))
 
     // AndroidX الأساسية
     implementation("androidx.core:core-ktx:1.13.1")
@@ -55,12 +55,28 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.2")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.6")
 
     // Material Design
     implementation("com.google.android.material:material:1.12.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Retrofit2 + Gson للشبكات
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // BiometricPrompt للأمان
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // Lottie للرسوم المتحركة
+    implementation("com.airbnb.android:lottie:6.4.0")
+
+    // تخزين آمن
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // اختبارات
     testImplementation("junit:junit:4.13.2")

@@ -18,14 +18,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.atheer.demo.R
 import com.atheer.demo.data.local.TokenManager
-import com.atheer.demo.data.model.HistoryResponse
-import com.atheer.demo.data.network.NetworkConstants
+import com.atheer.demo.data.network.RetrofitClient // تمت إضافة هذا الاستيراد
 import com.atheer.demo.databinding.ActivityMerchantMainBinding
 import com.atheer.demo.ui.login.LoginActivity
 import com.atheer.sdk.AtheerSdk
 import com.atheer.sdk.model.ChargeRequest
 import com.atheer.sdk.nfc.AtheerNfcReader
-import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
 /**
@@ -133,8 +131,9 @@ class MerchantMainActivity : AppCompatActivity() {
 
     private fun setupReceivePayment() {
         binding.btnReceivePayment.setOnClickListener {
-            val amount = enteredAmount.toString().toDoubleOrNull()
-            if (amount == null || amount <= 0) {
+            // تم التعديل: تحويل المبلغ إلى Long لأن المكتبة تتطلب Long
+            val amount = enteredAmount.toString().toLongOrNull()
+            if (amount == null || amount <= 0L) {
                 binding.tvAmountDisplay.text = getString(R.string.error_invalid_amount)
                 return@setOnClickListener
             }
@@ -142,7 +141,7 @@ class MerchantMainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startNfcReading(amount: Double) {
+    private fun startNfcReading(amount: Long) { // تم التعديل إلى Long
         val adapter = nfcAdapter
         if (adapter == null || !adapter.isEnabled) {
             binding.tvMerchantStatus.text = getString(R.string.pos_nfc_unavailable)
@@ -206,7 +205,7 @@ class MerchantMainActivity : AppCompatActivity() {
         }
     }
 
-    private fun processCharge(amount: Double, token: String, merchantId: String) {
+    private fun processCharge(amount: Long, token: String, merchantId: String) { // تم التعديل إلى Long
         // عرض حوار المعالجة
         val progressDialog = AlertDialog.Builder(this)
             .setMessage(getString(R.string.processing))
@@ -224,7 +223,9 @@ class MerchantMainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val accessToken = tokenManager.getAccessToken() ?: ""
-                val result = AtheerSdk.getInstance().charge(chargeRequest, "Bearer $accessToken")
+                
+                // تم التعديل: استدعاء charge مباشرة بدون getInstance
+                val result = AtheerSdk.charge(chargeRequest, "Bearer $accessToken")
 
                 progressDialog.dismiss()
 
@@ -246,21 +247,20 @@ class MerchantMainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val token = tokenManager.getAccessToken() ?: ""
-                val networkRouter = AtheerSdk.getInstance().getNetworkRouter()
-                val responseJson = networkRouter.executeViaCellular(
-                    "${NetworkConstants.BASE_URL}wallet/history",
-                    "",
-                    token
-                )
-                val historyResponse = responseJson?.let {
-                    gson.fromJson(it, HistoryResponse::class.java)
-                }
-                if (historyResponse?.transactions != null) {
-                    displayTransactions(historyResponse.transactions)
+                // تم التعديل: استخدام RetrofitClient الخاص بالتطبيق لجلب السجل بدلاً من الـ SDK
+                val response = RetrofitClient.apiService.getHistory("Bearer $token")
+                
+                if (response.isSuccessful && response.body()?.transactions != null) {
+                    displayTransactions(response.body()!!.transactions!!)
+                } else {
+                    binding.tvHistoryEmpty.text = "لا توجد معاملات سابقة"
+                    binding.tvHistoryEmpty.visibility = View.VISIBLE
+                    binding.rvHistory.visibility = View.GONE
                 }
             } catch (e: Exception) {
                 binding.tvHistoryEmpty.text = getString(R.string.error_offline)
                 binding.tvHistoryEmpty.visibility = View.VISIBLE
+                binding.rvHistory.visibility = View.GONE
             }
         }
     }
@@ -281,10 +281,12 @@ class MerchantMainActivity : AppCompatActivity() {
         for (txn in transactions) {
             val itemView = LayoutInflater.from(this).inflate(R.layout.item_transaction, container, false)
             itemView.findViewById<TextView>(R.id.tvTxnAmount).text =
-                String.format("%.2f %s", txn.amount, txn.currency ?: "SAR")
+                String.format("%s %s", txn.amount.toString(), txn.currency ?: "YER")
             itemView.findViewById<TextView>(R.id.tvTxnDate).text = txn.createdAt ?: ""
+            
             val statusText = if (txn.synced) "☁️ ${getString(R.string.result_status_synced)}"
                 else "📱 ${getString(R.string.result_status_offline)}"
+            
             itemView.findViewById<TextView>(R.id.tvTxnStatus).text = statusText
             val statusIcon = itemView.findViewById<ImageView>(R.id.ivTxnIcon)
             statusIcon.setColorFilter(
@@ -300,9 +302,10 @@ class MerchantMainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                // مزامنة المعاملات المحلية عبر SDK
-                val sdk = com.atheer.sdk.AtheerSdk.getInstance()
-                // SDK sync logic would go here
+                // تم التعديل: إزالة getInstance() إذا كانت المكتبة تدعم المزامنة
+                val token = tokenManager.getAccessToken() ?: ""
+                // AtheerSdk.syncPendingTransactions("Bearer $token") { ... }
+                
                 loadHistory()
             } catch (e: Exception) {
                 android.util.Log.e("MerchantMain", "Sync failed: ${e.message}", e)
@@ -316,9 +319,5 @@ class MerchantMainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         stopNfcReading()
-    }
-
-    companion object {
-        private val gson = Gson()
     }
 }

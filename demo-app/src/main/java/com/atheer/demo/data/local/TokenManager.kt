@@ -48,12 +48,12 @@ class TokenManager(context: Context) {
         return prefs.getString(KEY_USER_NAME, null)
     }
 
-    fun saveUserEmail(email: String) {
-        prefs.edit().putString(KEY_USER_EMAIL, email).apply()
+    fun saveUserPhone(phone: String) {
+        prefs.edit().putString(KEY_USER_PHONE, phone).apply()
     }
 
-    fun getUserEmail(): String? {
-        return prefs.getString(KEY_USER_EMAIL, null)
+    fun getUserPhone(): String? {
+        return prefs.getString(KEY_USER_PHONE, null)
     }
 
     fun clearAll() {
@@ -69,6 +69,6 @@ class TokenManager(context: Context) {
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_USER_ROLE = "user_role"
         private const val KEY_USER_NAME = "user_name"
-        private const val KEY_USER_EMAIL = "user_email"
+        private const val KEY_USER_PHONE = "user_phone"
     }
 }

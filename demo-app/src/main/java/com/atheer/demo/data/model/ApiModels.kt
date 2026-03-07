@@ -8,7 +8,7 @@ import com.google.gson.annotations.SerializedName
 
 // ── طلب تسجيل الدخول ──
 data class LoginRequest(
-    @SerializedName("email") val email: String,
+    @SerializedName("phone") val phone: String,
     @SerializedName("password") val password: String
 )
 
@@ -22,7 +22,7 @@ data class LoginResponse(
 data class UserInfo(
     @SerializedName("id") val id: String?,
     @SerializedName("name") val name: String?,
-    @SerializedName("email") val email: String?
+    @SerializedName("phone") val phone: String?
 )
 
 // ── طلب التسجيل ──

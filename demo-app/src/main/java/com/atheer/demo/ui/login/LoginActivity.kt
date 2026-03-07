@@ -7,17 +7,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.atheer.demo.R
 import com.atheer.demo.data.local.TokenManager
+import com.atheer.demo.data.model.LoginResponse
 import com.atheer.demo.data.model.LoginRequest
-import com.atheer.demo.data.network.RetrofitClient
+import com.atheer.demo.data.network.NetworkConstants
 import com.atheer.demo.databinding.ActivityLoginBinding
 import com.atheer.demo.ui.customer.CustomerMainActivity
 import com.atheer.demo.ui.merchant.MerchantMainActivity
+import com.atheer.sdk.AtheerSdk
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
 /**
  * LoginActivity — شاشة تسجيل الدخول
  *
- * تستخدم Retrofit للاتصال بـ /auth/login
+ * تستخدم AtheerSdk للاتصال بـ /auth/login عبر الشبكة الخلوية
  * وتوجّه المستخدم حسب الدور:
  *   - customer → CustomerMainActivity
  *   - merchant → MerchantMainActivity
@@ -65,12 +68,19 @@ class LoginActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val apiService = RetrofitClient.getApiService(tokenManager)
-                val response = apiService.login(LoginRequest(phone, password))
+                val networkRouter = AtheerSdk.getInstance().getNetworkRouter()
+                val loginJson = gson.toJson(LoginRequest(phone, password))
+                val responseJson = networkRouter.executeViaCellular(
+                    "${NetworkConstants.BASE_URL}auth/login",
+                    loginJson,
+                    ""
+                )
 
-                if (response.isSuccessful && response.body() != null) {
-                    val loginResponse = response.body()!!
+                val loginResponse = responseJson?.let {
+                    gson.fromJson(it, LoginResponse::class.java)
+                }
 
+                if (loginResponse?.accessToken != null) {
                     // حفظ التوكن والدور
                     tokenManager.saveAccessToken(loginResponse.accessToken)
                     tokenManager.saveUserRole(loginResponse.role)
@@ -102,4 +112,9 @@ class LoginActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
+
+    companion object {
+        private val gson = Gson()
+    }
 }
+

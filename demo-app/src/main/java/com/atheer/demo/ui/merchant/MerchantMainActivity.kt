@@ -21,10 +21,14 @@ import com.atheer.demo.data.local.TokenManager
 import com.atheer.demo.data.model.ChargeBody
 import com.atheer.demo.data.model.ChargeHeader
 import com.atheer.demo.data.model.ChargeRequest
-import com.atheer.demo.data.network.RetrofitClient
+import com.atheer.demo.data.model.ChargeResponse
+import com.atheer.demo.data.model.HistoryResponse
+import com.atheer.demo.data.network.NetworkConstants
 import com.atheer.demo.databinding.ActivityMerchantMainBinding
 import com.atheer.demo.ui.login.LoginActivity
+import com.atheer.sdk.AtheerSdk
 import com.atheer.sdk.nfc.AtheerNfcReader
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -87,7 +91,6 @@ class MerchantMainActivity : AppCompatActivity() {
         // تسجيل الخروج
         binding.btnLogout.setOnClickListener {
             tokenManager.clearAll()
-            RetrofitClient.reset()
             startActivity(Intent(this, LoginActivity::class.java))
             finishAffinity()
         }
@@ -153,7 +156,7 @@ class MerchantMainActivity : AppCompatActivity() {
         binding.tvMerchantStatus.text = getString(R.string.pos_tap_card)
         binding.btnReceivePayment.isEnabled = false
 
-        val merchantId = tokenManager.getUserEmail() ?: "MERCHANT"
+        val merchantId = tokenManager.getUserPhone() ?: "MERCHANT"
 
         nfcReader = AtheerNfcReader(
             merchantId = merchantId,
@@ -231,12 +234,21 @@ class MerchantMainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val apiService = RetrofitClient.getApiService(tokenManager)
-                val response = apiService.charge(chargeRequest)
+                val accessToken = tokenManager.getAccessToken() ?: ""
+                val networkRouter = AtheerSdk.getInstance().getNetworkRouter()
+                val chargeJson = gson.toJson(chargeRequest)
+                val responseJson = networkRouter.executeViaCellular(
+                    "${NetworkConstants.BASE_URL}merchant/charge",
+                    chargeJson,
+                    accessToken
+                )
+                val chargeResponse = responseJson?.let {
+                    gson.fromJson(it, ChargeResponse::class.java)
+                }
 
                 progressDialog.dismiss()
 
-                if (response.isSuccessful && response.body()?.success == true) {
+                if (chargeResponse?.success == true) {
                     binding.tvMerchantStatus.text = getString(R.string.charge_success)
                     enteredAmount.clear()
                     updateAmountDisplay()
@@ -253,11 +265,18 @@ class MerchantMainActivity : AppCompatActivity() {
     private fun loadHistory() {
         lifecycleScope.launch {
             try {
-                val apiService = RetrofitClient.getApiService(tokenManager)
-                val response = apiService.getHistory()
-                if (response.isSuccessful && response.body()?.transactions != null) {
-                    val transactions = response.body()!!.transactions!!
-                    displayTransactions(transactions)
+                val token = tokenManager.getAccessToken() ?: ""
+                val networkRouter = AtheerSdk.getInstance().getNetworkRouter()
+                val responseJson = networkRouter.executeViaCellular(
+                    "${NetworkConstants.BASE_URL}wallet/history",
+                    "",
+                    token
+                )
+                val historyResponse = responseJson?.let {
+                    gson.fromJson(it, HistoryResponse::class.java)
+                }
+                if (historyResponse?.transactions != null) {
+                    displayTransactions(historyResponse.transactions)
                 }
             } catch (e: Exception) {
                 binding.tvHistoryEmpty.text = getString(R.string.error_offline)
@@ -317,5 +336,9 @@ class MerchantMainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         stopNfcReading()
+    }
+
+    companion object {
+        private val gson = Gson()
     }
 }

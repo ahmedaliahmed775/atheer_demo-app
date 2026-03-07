@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
 
-    private const val BASE_URL = "https://api.atheer.com/"
+    private const val BASE_URL = "https://atheer-server-82ch.onrender.com/"
     private const val TIMEOUT_SECONDS = 30L
 
     @Volatile

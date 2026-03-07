@@ -20,11 +20,13 @@ class AtheerDemoApp : Application() {
             AtheerSdk.init(
                 context = this,
                 merchantId = "MERCHANT_001",
-                apiBaseUrl = "https://api.atheer.com"
+                apiBaseUrl = "https://atheer-server-82ch.onrender.com/"
             )
             Log.i(TAG, "Atheer SDK initialized successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize Atheer SDK: ${e.message}", e)
+        } catch (e: LinkageError) {
+            Log.e(TAG, "Failed to initialize Atheer SDK (missing dependency): ${e.message}", e)
         }
     }
 

@@ -190,8 +190,7 @@ class PosActivity : AppCompatActivity() {
         val token = accessToken
         lifecycleScope.launch {
             try {
-                // استدعاء الدالة مباشرة بدون getInstance
-                val result = AtheerSdk.charge(chargeRequest, "Bearer $token")
+                val result = AtheerSdk.getInstance().charge(chargeRequest, "Bearer $token")
 
                 result.onSuccess { response ->
                     val intent = Intent(this@PosActivity, TransactionResultActivity::class.java).apply {

@@ -224,8 +224,7 @@ class MerchantMainActivity : AppCompatActivity() {
             try {
                 val accessToken = tokenManager.getAccessToken() ?: ""
                 
-                // تم التعديل: استدعاء charge مباشرة بدون getInstance
-                val result = AtheerSdk.charge(chargeRequest, "Bearer $accessToken")
+                val result = AtheerSdk.getInstance().charge(chargeRequest, "Bearer $accessToken")
 
                 progressDialog.dismiss()
 

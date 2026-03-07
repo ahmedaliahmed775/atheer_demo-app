@@ -78,6 +78,9 @@ dependencies {
     // تخزين آمن
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
+    // Room — مطلوب لتشغيل Atheer SDK (يستخدم قاعدة بيانات Room داخلياً)
+    implementation("androidx.room:room-runtime:2.6.1")
+
     // اختبارات
     testImplementation("junit:junit:4.13.2")
 }

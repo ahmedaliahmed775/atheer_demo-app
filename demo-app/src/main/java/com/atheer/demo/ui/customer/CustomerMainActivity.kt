@@ -14,12 +14,16 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.atheer.demo.R
 import com.atheer.demo.data.local.TokenManager
-import com.atheer.demo.data.network.RetrofitClient
+import com.atheer.demo.data.model.BalanceResponse
+import com.atheer.demo.data.model.HistoryResponse
+import com.atheer.demo.data.network.NetworkConstants
 import com.atheer.demo.databinding.ActivityCustomerMainBinding
 import com.atheer.demo.ui.login.LoginActivity
 import com.atheer.demo.ui.payment.PaymentSuccessActivity
+import com.atheer.sdk.AtheerSdk
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 
 /**
@@ -80,7 +84,6 @@ class CustomerMainActivity : AppCompatActivity() {
         // الإعدادات — تسجيل الخروج
         binding.btnLogout.setOnClickListener {
             tokenManager.clearAll()
-            RetrofitClient.reset()
             startActivity(Intent(this, LoginActivity::class.java))
             finishAffinity()
         }
@@ -108,10 +111,18 @@ class CustomerMainActivity : AppCompatActivity() {
     private fun loadBalance() {
         lifecycleScope.launch {
             try {
-                val apiService = RetrofitClient.getApiService(tokenManager)
-                val response = apiService.getBalance()
-                if (response.isSuccessful && response.body() != null) {
-                    currentBalance = response.body()!!.balance
+                val token = tokenManager.getAccessToken() ?: ""
+                val networkRouter = AtheerSdk.getInstance().getNetworkRouter()
+                val responseJson = networkRouter.executeViaCellular(
+                    "${NetworkConstants.BASE_URL}wallet/balance",
+                    "",
+                    token
+                )
+                val balanceResponse = responseJson?.let {
+                    gson.fromJson(it, BalanceResponse::class.java)
+                }
+                if (balanceResponse != null) {
+                    currentBalance = balanceResponse.balance
                     updateBalanceDisplay()
                 }
             } catch (e: Exception) {
@@ -124,10 +135,18 @@ class CustomerMainActivity : AppCompatActivity() {
     private fun loadHistory() {
         lifecycleScope.launch {
             try {
-                val apiService = RetrofitClient.getApiService(tokenManager)
-                val response = apiService.getHistory()
-                if (response.isSuccessful && response.body()?.transactions != null) {
-                    val transactions = response.body()!!.transactions!!
+                val token = tokenManager.getAccessToken() ?: ""
+                val networkRouter = AtheerSdk.getInstance().getNetworkRouter()
+                val responseJson = networkRouter.executeViaCellular(
+                    "${NetworkConstants.BASE_URL}wallet/history",
+                    "",
+                    token
+                )
+                val historyResponse = responseJson?.let {
+                    gson.fromJson(it, HistoryResponse::class.java)
+                }
+                if (historyResponse?.transactions != null) {
+                    val transactions = historyResponse.transactions
                     if (transactions.isEmpty()) {
                         binding.tvHistoryEmpty.visibility = View.VISIBLE
                         binding.rvHistory.visibility = View.GONE
@@ -221,5 +240,9 @@ class CustomerMainActivity : AppCompatActivity() {
         }
 
         dialog.show()
+    }
+
+    companion object {
+        private val gson = Gson()
     }
 }

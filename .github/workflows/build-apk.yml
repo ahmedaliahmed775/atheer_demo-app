@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read # إضافة صلاحية قراءة الحزم (احتياطياً)
 
     steps:
       - name: Checkout code
@@ -31,7 +32,8 @@ jobs:
       - name: Build Debug APK
         env:
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # التعديل الأهم هنا: استخدام السر الذي يحتوي على التوكن الحقيقي
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
         run: ./gradlew :demo-app:assembleDebug --stacktrace
 
       - name: Upload Debug APK

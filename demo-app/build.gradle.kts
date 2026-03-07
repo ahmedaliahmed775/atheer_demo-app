@@ -46,8 +46,8 @@ android {
 }
 
 dependencies {
-    // تضمين مكتبة Atheer SDK من ملف AAR
-    implementation(files("libs/atheer-sdk-release.aar"))
+    // Atheer SDK من GitHub Packages
+    implementation("com.github.ahmedaliahmed775:atheer-sdk:1.0.0")
 
     // AndroidX الأساسية
     implementation("androidx.core:core-ktx:1.13.1")

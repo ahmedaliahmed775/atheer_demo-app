@@ -55,29 +55,3 @@ data class TransactionItem(
 data class HistoryResponse(
     @SerializedName("transactions") val transactions: List<TransactionItem>?
 )
-
-// ── طلب الدفع من التاجر ──
-data class ChargeRequest(
-    @SerializedName("header") val header: ChargeHeader,
-    @SerializedName("body") val body: ChargeBody
-)
-
-data class ChargeHeader(
-    @SerializedName("merchant_id") val merchantId: String,
-    @SerializedName("terminal_id") val terminalId: String?,
-    @SerializedName("timestamp") val timestamp: Long
-)
-
-data class ChargeBody(
-    @SerializedName("amount") val amount: Double,
-    @SerializedName("currency") val currency: String,
-    @SerializedName("token") val token: String,
-    @SerializedName("transaction_id") val transactionId: String?
-)
-
-// ── استجابة الدفع ──
-data class ChargeResponse(
-    @SerializedName("success") val success: Boolean,
-    @SerializedName("transaction_id") val transactionId: String?,
-    @SerializedName("message") val message: String?
-)

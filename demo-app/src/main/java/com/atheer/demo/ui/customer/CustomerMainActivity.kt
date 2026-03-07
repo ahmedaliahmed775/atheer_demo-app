@@ -125,10 +125,30 @@ class CustomerMainActivity : AppCompatActivity() {
                     currentBalance = balanceResponse.balance
                     updateBalanceDisplay()
                 }
+
+                // Provision offline tokens after loading balance
+                provisionOfflineTokens()
             } catch (e: Exception) {
                 // وضع عدم الاتصال — عرض آخر رصيد محفوظ
                 binding.tvBalance.text = getString(R.string.error_offline)
             }
+        }
+    }
+
+    /** Provision offline tokens to allow NFC payments without connectivity */
+    private fun provisionOfflineTokens() {
+        try {
+            val userPhone = tokenManager.getUserPhone() ?: "770000000"
+            val encodedToken = android.util.Base64.encodeToString(
+                userPhone.toByteArray(),
+                android.util.Base64.NO_WRAP
+            )
+            val sdk = AtheerSdk.getInstance()
+            sdk.provisionOfflineTokens(
+                listOf(encodedToken, encodedToken, encodedToken, encodedToken, encodedToken)
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("CustomerMain", "Failed to provision offline tokens: ${e.message}")
         }
     }
 

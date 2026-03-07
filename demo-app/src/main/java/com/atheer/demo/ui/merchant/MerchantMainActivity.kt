@@ -18,19 +18,15 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.atheer.demo.R
 import com.atheer.demo.data.local.TokenManager
-import com.atheer.demo.data.model.ChargeBody
-import com.atheer.demo.data.model.ChargeHeader
-import com.atheer.demo.data.model.ChargeRequest
-import com.atheer.demo.data.model.ChargeResponse
 import com.atheer.demo.data.model.HistoryResponse
 import com.atheer.demo.data.network.NetworkConstants
 import com.atheer.demo.databinding.ActivityMerchantMainBinding
 import com.atheer.demo.ui.login.LoginActivity
 import com.atheer.sdk.AtheerSdk
+import com.atheer.sdk.model.ChargeRequest
 import com.atheer.sdk.nfc.AtheerNfcReader
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 /**
  * MerchantMainActivity — الشاشة الرئيسية للتاجر (SoftPOS)
@@ -219,40 +215,24 @@ class MerchantMainActivity : AppCompatActivity() {
         progressDialog.show()
 
         val chargeRequest = ChargeRequest(
-            header = ChargeHeader(
-                merchantId = merchantId,
-                terminalId = "TERMINAL_${Build.MODEL}",
-                timestamp = System.currentTimeMillis()
-            ),
-            body = ChargeBody(
-                amount = amount,
-                currency = "SAR",
-                token = token,
-                transactionId = "TXN_${UUID.randomUUID().toString().take(12)}"
-            )
+            amount = amount,
+            currency = "YER",
+            merchantId = merchantId,
+            atheerToken = token
         )
 
         lifecycleScope.launch {
             try {
                 val accessToken = tokenManager.getAccessToken() ?: ""
-                val networkRouter = AtheerSdk.getInstance().getNetworkRouter()
-                val chargeJson = gson.toJson(chargeRequest)
-                val responseJson = networkRouter.executeViaCellular(
-                    "${NetworkConstants.BASE_URL}merchant/charge",
-                    chargeJson,
-                    accessToken
-                )
-                val chargeResponse = responseJson?.let {
-                    gson.fromJson(it, ChargeResponse::class.java)
-                }
+                val result = AtheerSdk.getInstance().charge(chargeRequest, "Bearer $accessToken")
 
                 progressDialog.dismiss()
 
-                if (chargeResponse?.success == true) {
+                result.onSuccess { response ->
                     binding.tvMerchantStatus.text = getString(R.string.charge_success)
                     enteredAmount.clear()
                     updateAmountDisplay()
-                } else {
+                }.onFailure { error ->
                     binding.tvMerchantStatus.text = getString(R.string.charge_failed)
                 }
             } catch (e: Exception) {

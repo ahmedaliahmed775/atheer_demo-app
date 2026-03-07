@@ -21,7 +21,7 @@ dependencyResolutionManagement {
             url = uri("https://maven.pkg.github.com/ahmedaliahmed775/atheer-sdk")
             credentials {
                 username = System.getenv("GITHUB_ACTOR") ?: "ahmedaliahmed775"
-                password = System.getenv("GITHUB_TOKEN") ?: "YOUR_GITHUB_TOKEN"
+                password = System.getenv("GITHUB_TOKEN") ?: ""
             }
         }
     }

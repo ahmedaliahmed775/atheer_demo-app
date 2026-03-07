@@ -178,7 +178,7 @@ class PosActivity : AppCompatActivity() {
     /** معالجة الدفع عبر SDK */
     private fun processChargeWithSdk(capturedAtheerToken: String, transaction: com.atheer.sdk.nfc.AtheerNfcReader.TransactionData) {
         val chargeRequest = ChargeRequest(
-            amount = if (amountInput > 0) amountInput else transaction.amount,
+            amount = if (amountInput > 0) amountInput else transaction.amount, // use UI amount if provided, otherwise NFC transaction amount
             currency = "YER",
             merchantId = "DEMO_MERCHANT",
             atheerToken = capturedAtheerToken

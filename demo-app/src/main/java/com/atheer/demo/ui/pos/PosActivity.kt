@@ -14,6 +14,7 @@ import com.atheer.demo.data.local.TokenManager
 import com.atheer.demo.databinding.ActivityPosBinding
 import com.atheer.demo.ui.result.TransactionResultActivity
 import com.atheer.sdk.AtheerSdk
+import com.atheer.sdk.model.AtheerTransaction // تم استيراد الكلاس الصحيح
 import com.atheer.sdk.model.ChargeRequest
 import com.atheer.sdk.nfc.AtheerNfcReader
 import kotlinx.coroutines.launch
@@ -32,7 +33,7 @@ class PosActivity : AppCompatActivity() {
     private lateinit var tokenManager: TokenManager
     private var merchantId: String = "DEMO_MERCHANT"
     private var accessToken: String = ""
-    private var amountInput: Double = 0.0
+    private var amountInput: Long = 0L // تم التحويل إلى Long
     private var nfcAdapter: NfcAdapter? = null
     private var nfcReader: AtheerNfcReader? = null
     private var isReading = false
@@ -45,7 +46,11 @@ class PosActivity : AppCompatActivity() {
         tokenManager = TokenManager(this)
         merchantId = intent.getStringExtra(EXTRA_MERCHANT_ID) ?: "DEMO_MERCHANT"
         accessToken = intent.getStringExtra(EXTRA_ACCESS_TOKEN) ?: (tokenManager.getAccessToken() ?: "")
-        amountInput = intent.getDoubleExtra(EXTRA_AMOUNT, 0.0)
+        
+        // جلب المبلغ كـ Long بشكل آمن
+        val doubleAmount = intent.getDoubleExtra(EXTRA_AMOUNT, 0.0)
+        amountInput = if (doubleAmount > 0) doubleAmount.toLong() else intent.getLongExtra(EXTRA_AMOUNT, 0L)
+        
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
 
         checkNfcAvailability()
@@ -62,13 +67,11 @@ class PosActivity : AppCompatActivity() {
     private fun checkNfcAvailability() {
         when {
             nfcAdapter == null -> {
-                // الجهاز لا يدعم NFC
                 binding.layoutNfcUnavailable.visibility = View.VISIBLE
                 binding.tvPosStatus.text = getString(R.string.pos_nfc_unavailable)
                 binding.btnStartReading.isEnabled = false
             }
             !nfcAdapter!!.isEnabled -> {
-                // NFC متاح لكن غير مفعّل
                 binding.layoutNfcUnavailable.visibility = View.VISIBLE
                 binding.tvPosStatus.text = getString(R.string.pos_enable_nfc)
                 binding.btnOpenNfcSettings.visibility = View.VISIBLE
@@ -91,14 +94,14 @@ class PosActivity : AppCompatActivity() {
             return
         }
 
-        // إنشاء قارئ NFC باستخدام SDK
         nfcReader = AtheerNfcReader(
             merchantId = merchantId,
             transactionCallback = { transaction ->
-                // تم استلام بيانات الدفع بنجاح — معالجة عبر SDK
-                stopNfcReading()
-                val capturedAtheerToken = transaction.tokenizedCard ?: transaction.transactionId ?: ""
-                processChargeWithSdk(capturedAtheerToken, transaction)
+                runOnUiThread {
+                    stopNfcReading()
+                    val capturedAtheerToken = transaction.tokenizedCard ?: transaction.transactionId ?: ""
+                    processChargeWithSdk(capturedAtheerToken, transaction)
+                }
             },
             errorCallback = { error ->
                 runOnUiThread {
@@ -109,7 +112,6 @@ class PosActivity : AppCompatActivity() {
             }
         )
 
-        // تفعيل وضع القراءة
         adapter.enableReaderMode(
             this,
             nfcReader,
@@ -139,7 +141,6 @@ class PosActivity : AppCompatActivity() {
             binding.btnStartReading.isEnabled = false
             binding.btnStopReading.isEnabled = true
 
-            // تأثير وميض لأيقونة NFC
             val blink = AlphaAnimation(0.3f, 1.0f).apply {
                 duration = 700
                 repeatMode = Animation.REVERSE
@@ -160,7 +161,6 @@ class PosActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // إعادة التحقق من حالة NFC عند العودة من الإعدادات
         checkNfcAvailability()
     }
 
@@ -176,9 +176,12 @@ class PosActivity : AppCompatActivity() {
     }
 
     /** معالجة الدفع عبر SDK */
-    private fun processChargeWithSdk(capturedAtheerToken: String, transaction: com.atheer.sdk.nfc.AtheerNfcReader.TransactionData) {
+    private fun processChargeWithSdk(capturedAtheerToken: String, transaction: AtheerTransaction) {
+        // تم التحويل إلى Long
+        val finalAmount = if (amountInput > 0L) amountInput else transaction.amount.toLong()
+
         val chargeRequest = ChargeRequest(
-            amount = if (amountInput > 0) amountInput else transaction.amount, // use UI amount if provided, otherwise NFC transaction amount
+            amount = finalAmount,
             currency = "YER",
             merchantId = "DEMO_MERCHANT",
             atheerToken = capturedAtheerToken
@@ -187,30 +190,28 @@ class PosActivity : AppCompatActivity() {
         val token = accessToken
         lifecycleScope.launch {
             try {
-                val result = AtheerSdk.getInstance().charge(chargeRequest, "Bearer $token")
+                // استدعاء الدالة مباشرة بدون getInstance
+                val result = AtheerSdk.charge(chargeRequest, "Bearer $token")
 
                 result.onSuccess { response ->
                     val intent = Intent(this@PosActivity, TransactionResultActivity::class.java).apply {
-                        putExtra(TransactionResultActivity.EXTRA_TRANSACTION_ID, transaction.transactionId)
-                        putExtra(TransactionResultActivity.EXTRA_AMOUNT, transaction.amount)
-                        putExtra(TransactionResultActivity.EXTRA_CURRENCY, transaction.currency)
-                        putExtra(TransactionResultActivity.EXTRA_MERCHANT_ID, transaction.merchantId)
+                        putExtra(TransactionResultActivity.EXTRA_TRANSACTION_ID, response.transactionId)
+                        putExtra(TransactionResultActivity.EXTRA_AMOUNT, finalAmount.toDouble()) // إعادته لـ Double للواجهة
+                        putExtra(TransactionResultActivity.EXTRA_CURRENCY, "YER")
+                        putExtra(TransactionResultActivity.EXTRA_MERCHANT_ID, "DEMO_MERCHANT")
                         putExtra(TransactionResultActivity.EXTRA_TIMESTAMP, transaction.timestamp)
                         putExtra(TransactionResultActivity.EXTRA_IS_SUCCESS, true)
                         putExtra(TransactionResultActivity.EXTRA_IS_SYNCED, true)
                     }
                     startActivity(intent)
+                    finish() // إغلاق شاشة الـ POS بعد النجاح
                 }.onFailure { error ->
-                    runOnUiThread {
-                        binding.tvPosStatus.text = "خطأ: ${error.message}"
-                        binding.progressReading.visibility = View.GONE
-                    }
-                }
-            } catch (e: Exception) {
-                runOnUiThread {
-                    binding.tvPosStatus.text = "خطأ: ${e.message}"
+                    binding.tvPosStatus.text = "خطأ: ${error.message}"
                     binding.progressReading.visibility = View.GONE
                 }
+            } catch (e: Exception) {
+                binding.tvPosStatus.text = "خطأ: ${e.message}"
+                binding.progressReading.visibility = View.GONE
             }
         }
     }

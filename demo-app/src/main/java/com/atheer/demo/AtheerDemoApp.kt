@@ -23,8 +23,10 @@ class AtheerDemoApp : Application() {
                 apiBaseUrl = "https://atheer-server-82ch.onrender.com/"
             )
             Log.i(TAG, "Atheer SDK initialized successfully")
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize Atheer SDK: ${e.message}", e)
+        } catch (e: LinkageError) {
+            Log.e(TAG, "Failed to initialize Atheer SDK (missing dependency): ${e.message}", e)
         }
     }
 

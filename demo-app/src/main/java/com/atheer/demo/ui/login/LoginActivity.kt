@@ -44,7 +44,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun attemptLogin() {
-        val email = binding.etMerchantId.text?.toString()?.trim() ?: ""
+        val phone = binding.etMerchantId.text?.toString()?.trim() ?: ""
         val password = binding.etPassword.text?.toString()?.trim() ?: ""
 
         // إخفاء رسالة الخطأ السابقة
@@ -53,7 +53,7 @@ class LoginActivity : AppCompatActivity() {
         binding.tilPassword.error = null
 
         // التحقق من عدم الفراغ
-        if (email.isEmpty() || password.isEmpty()) {
+        if (phone.isEmpty() || password.isEmpty()) {
             binding.tvError.text = getString(R.string.login_error_empty)
             binding.tvError.visibility = View.VISIBLE
             return
@@ -66,7 +66,7 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val apiService = RetrofitClient.getApiService(tokenManager)
-                val response = apiService.login(LoginRequest(email, password))
+                val response = apiService.login(LoginRequest(phone, password))
 
                 if (response.isSuccessful && response.body() != null) {
                     val loginResponse = response.body()!!
@@ -76,7 +76,7 @@ class LoginActivity : AppCompatActivity() {
                     tokenManager.saveUserRole(loginResponse.role)
                     loginResponse.user?.let { user ->
                         user.name?.let { tokenManager.saveUserName(it) }
-                        user.email?.let { tokenManager.saveUserEmail(it) }
+                        user.phone?.let { tokenManager.saveUserPhone(it) }
                     }
 
                     navigateByRole(loginResponse.role)

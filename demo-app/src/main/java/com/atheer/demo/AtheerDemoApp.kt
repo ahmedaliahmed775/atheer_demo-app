@@ -19,8 +19,8 @@ class AtheerDemoApp : Application() {
         try {
             AtheerSdk.init(
                 context = this,
-                merchantId = "DEMO_MERCHANT",
-                apiBaseUrl = "https://atheer-server-82ch.onrender.com/api/v1"
+                merchantId = "777000000",
+                apiBaseUrl = "https://atheer-server-82ch.onrender.com"
             )
             Log.i(TAG, "Atheer SDK initialized successfully")
         } catch (e: Exception) {

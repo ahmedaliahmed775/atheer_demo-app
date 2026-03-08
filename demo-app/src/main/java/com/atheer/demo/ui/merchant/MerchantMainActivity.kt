@@ -25,7 +25,6 @@ import com.atheer.sdk.AtheerSdk
 import com.atheer.sdk.model.ChargeRequest
 import com.atheer.sdk.nfc.AtheerNfcReader
 import kotlinx.coroutines.launch
-import kotlin.math.roundToLong
 
 /**
  * MerchantMainActivity — الشاشة الرئيسية للتاجر (SoftPOS)
@@ -133,7 +132,7 @@ class MerchantMainActivity : AppCompatActivity() {
     private fun setupReceivePayment() {
         binding.btnReceivePayment.setOnClickListener {
             val amountDouble = enteredAmount.toString().toDoubleOrNull()
-            val amount = amountDouble?.let { (it * 100).roundToLong() }
+            val amount = amountDouble?.let { Math.round(it * 100) }
             if (amount == null || amount <= 0L) {
                 binding.tvAmountDisplay.text = getString(R.string.error_invalid_amount)
                 return@setOnClickListener

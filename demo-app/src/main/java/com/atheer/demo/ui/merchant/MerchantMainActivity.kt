@@ -18,12 +18,13 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.atheer.demo.R
 import com.atheer.demo.data.local.TokenManager
-import com.atheer.demo.data.network.RetrofitClient // تمت إضافة هذا الاستيراد
+import com.atheer.demo.data.network.NetworkConstants
 import com.atheer.demo.databinding.ActivityMerchantMainBinding
 import com.atheer.demo.ui.login.LoginActivity
 import com.atheer.sdk.AtheerSdk
 import com.atheer.sdk.model.ChargeRequest
 import com.atheer.sdk.nfc.AtheerNfcReader
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import kotlin.math.roundToLong
 
@@ -247,11 +248,18 @@ class MerchantMainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val token = tokenManager.getAccessToken() ?: ""
-                // تم التعديل: استخدام RetrofitClient الخاص بالتطبيق لجلب السجل بدلاً من الـ SDK
-                val response = RetrofitClient.apiService.getHistory("Bearer $token")
+                val networkRouter = AtheerSdk.getInstance().getNetworkRouter()
+                val responseJson = networkRouter.executeViaCellular(
+                    "${NetworkConstants.BASE_URL}wallet/history",
+                    "", // GET request — no body
+                    token
+                )
+                val historyResponse = responseJson?.let {
+                    gson.fromJson(it, com.atheer.demo.data.model.HistoryResponse::class.java)
+                }
 
-                if (response.isSuccessful && response.body()?.transactions != null) {
-                    displayTransactions(response.body()!!.transactions!!)
+                if (historyResponse?.transactions != null) {
+                    displayTransactions(historyResponse.transactions!!)
                 } else {
                     binding.tvHistoryEmpty.text = "لا توجد معاملات سابقة"
                     binding.tvHistoryEmpty.visibility = View.VISIBLE
@@ -319,5 +327,9 @@ class MerchantMainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         stopNfcReading()
+    }
+
+    companion object {
+        private val gson = Gson()
     }
 }

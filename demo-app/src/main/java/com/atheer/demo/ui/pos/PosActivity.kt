@@ -18,7 +18,6 @@ import com.atheer.sdk.model.AtheerTransaction
 import com.atheer.sdk.model.ChargeRequest
 import com.atheer.sdk.nfc.AtheerNfcReader
 import kotlinx.coroutines.launch
-import kotlin.math.roundToLong
 
 /**
  * PosActivity — مسار نقطة المبيعات (SoftPOS)
@@ -50,7 +49,7 @@ class PosActivity : AppCompatActivity() {
 
         // جلب المبلغ كـ Long بشكل آمن
         val doubleAmount = intent.getDoubleExtra(EXTRA_AMOUNT, 0.0)
-        amountInput = if (doubleAmount > 0) (doubleAmount * 100).roundToLong()
+        amountInput = if (doubleAmount > 0) Math.round(doubleAmount * 100)
         else intent.getLongExtra(EXTRA_AMOUNT, 0L)
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -180,7 +179,7 @@ class PosActivity : AppCompatActivity() {
 
     /** معالجة الدفع عبر SDK */
     private fun processChargeWithSdk(capturedAtheerToken: String, transaction: AtheerTransaction) {
-        val transactionAmount = (transaction.amount * 100).roundToLong()
+        val transactionAmount = Math.round(transaction.amount.toDouble() * 100)
         val finalAmount = if (amountInput > 0L) amountInput else transactionAmount
 
         val chargeRequest = ChargeRequest(

@@ -14,10 +14,11 @@ import com.atheer.demo.data.local.TokenManager
 import com.atheer.demo.databinding.ActivityPosBinding
 import com.atheer.demo.ui.result.TransactionResultActivity
 import com.atheer.sdk.AtheerSdk
-import com.atheer.sdk.model.AtheerTransaction // تم استيراد الكلاس الصحيح
+import com.atheer.sdk.model.AtheerTransaction
 import com.atheer.sdk.model.ChargeRequest
 import com.atheer.sdk.nfc.AtheerNfcReader
 import kotlinx.coroutines.launch
+import kotlin.math.roundToLong
 
 /**
  * PosActivity — مسار نقطة المبيعات (SoftPOS)
@@ -46,11 +47,12 @@ class PosActivity : AppCompatActivity() {
         tokenManager = TokenManager(this)
         merchantId = intent.getStringExtra(EXTRA_MERCHANT_ID) ?: DEFAULT_MERCHANT_ID
         accessToken = intent.getStringExtra(EXTRA_ACCESS_TOKEN) ?: (tokenManager.getAccessToken() ?: "")
-        
+
         // جلب المبلغ كـ Long بشكل آمن
         val doubleAmount = intent.getDoubleExtra(EXTRA_AMOUNT, 0.0)
-        amountInput = if (doubleAmount > 0) doubleAmount.toLong() else intent.getLongExtra(EXTRA_AMOUNT, 0L)
-        
+        amountInput = if (doubleAmount > 0) (doubleAmount * 100).roundToLong()
+        else intent.getLongExtra(EXTRA_AMOUNT, 0L)
+
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
 
         checkNfcAvailability()
@@ -178,8 +180,8 @@ class PosActivity : AppCompatActivity() {
 
     /** معالجة الدفع عبر SDK */
     private fun processChargeWithSdk(capturedAtheerToken: String, transaction: AtheerTransaction) {
-        // تم التحويل إلى Long
-        val finalAmount = if (amountInput > 0L) amountInput else transaction.amount.toLong()
+        val transactionAmount = (transaction.amount * 100).roundToLong()
+        val finalAmount = if (amountInput > 0L) amountInput else transactionAmount
 
         val chargeRequest = ChargeRequest(
             amount = finalAmount,
@@ -196,7 +198,7 @@ class PosActivity : AppCompatActivity() {
                 result.onSuccess { response ->
                     val intent = Intent(this@PosActivity, TransactionResultActivity::class.java).apply {
                         putExtra(TransactionResultActivity.EXTRA_TRANSACTION_ID, response.transactionId)
-                        putExtra(TransactionResultActivity.EXTRA_AMOUNT, finalAmount.toDouble()) // إعادته لـ Double للواجهة
+                        putExtra(TransactionResultActivity.EXTRA_AMOUNT, finalAmount / 100.0)
                         putExtra(TransactionResultActivity.EXTRA_CURRENCY, "YER")
                         putExtra(TransactionResultActivity.EXTRA_MERCHANT_ID, DEFAULT_MERCHANT_ID)
                         putExtra(TransactionResultActivity.EXTRA_TIMESTAMP, transaction.timestamp)

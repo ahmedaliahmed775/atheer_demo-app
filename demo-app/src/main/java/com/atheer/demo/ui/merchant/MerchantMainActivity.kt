@@ -25,6 +25,7 @@ import com.atheer.sdk.AtheerSdk
 import com.atheer.sdk.model.ChargeRequest
 import com.atheer.sdk.nfc.AtheerNfcReader
 import kotlinx.coroutines.launch
+import kotlin.math.roundToLong
 
 /**
  * MerchantMainActivity — الشاشة الرئيسية للتاجر (SoftPOS)
@@ -131,8 +132,8 @@ class MerchantMainActivity : AppCompatActivity() {
 
     private fun setupReceivePayment() {
         binding.btnReceivePayment.setOnClickListener {
-            // تم التعديل: تحويل المبلغ إلى Long لأن المكتبة تتطلب Long
-            val amount = enteredAmount.toString().toLongOrNull()
+            val amountDouble = enteredAmount.toString().toDoubleOrNull()
+            val amount = amountDouble?.let { (it * 100).roundToLong() }
             if (amount == null || amount <= 0L) {
                 binding.tvAmountDisplay.text = getString(R.string.error_invalid_amount)
                 return@setOnClickListener
@@ -223,7 +224,7 @@ class MerchantMainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val accessToken = tokenManager.getAccessToken() ?: ""
-                
+
                 val result = AtheerSdk.getInstance().charge(chargeRequest, "Bearer $accessToken")
 
                 progressDialog.dismiss()
@@ -248,7 +249,7 @@ class MerchantMainActivity : AppCompatActivity() {
                 val token = tokenManager.getAccessToken() ?: ""
                 // تم التعديل: استخدام RetrofitClient الخاص بالتطبيق لجلب السجل بدلاً من الـ SDK
                 val response = RetrofitClient.apiService.getHistory("Bearer $token")
-                
+
                 if (response.isSuccessful && response.body()?.transactions != null) {
                     displayTransactions(response.body()!!.transactions!!)
                 } else {
@@ -282,10 +283,10 @@ class MerchantMainActivity : AppCompatActivity() {
             itemView.findViewById<TextView>(R.id.tvTxnAmount).text =
                 String.format("%s %s", txn.amount.toString(), txn.currency ?: "YER")
             itemView.findViewById<TextView>(R.id.tvTxnDate).text = txn.createdAt ?: ""
-            
+
             val statusText = if (txn.synced) "☁️ ${getString(R.string.result_status_synced)}"
                 else "📱 ${getString(R.string.result_status_offline)}"
-            
+
             itemView.findViewById<TextView>(R.id.tvTxnStatus).text = statusText
             val statusIcon = itemView.findViewById<ImageView>(R.id.ivTxnIcon)
             statusIcon.setColorFilter(
@@ -304,7 +305,7 @@ class MerchantMainActivity : AppCompatActivity() {
                 // تم التعديل: إزالة getInstance() إذا كانت المكتبة تدعم المزامنة
                 val token = tokenManager.getAccessToken() ?: ""
                 // AtheerSdk.syncPendingTransactions("Bearer $token") { ... }
-                
+
                 loadHistory()
             } catch (e: Exception) {
                 android.util.Log.e("MerchantMain", "Sync failed: ${e.message}", e)

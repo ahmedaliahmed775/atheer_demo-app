@@ -31,7 +31,7 @@ class PosActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPosBinding
     private lateinit var tokenManager: TokenManager
-    private var merchantId: String = "DEMO_MERCHANT"
+    private var merchantId: String = DEFAULT_MERCHANT_ID
     private var accessToken: String = ""
     private var amountInput: Long = 0L // تم التحويل إلى Long
     private var nfcAdapter: NfcAdapter? = null
@@ -44,7 +44,7 @@ class PosActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         tokenManager = TokenManager(this)
-        merchantId = intent.getStringExtra(EXTRA_MERCHANT_ID) ?: "DEMO_MERCHANT"
+        merchantId = intent.getStringExtra(EXTRA_MERCHANT_ID) ?: DEFAULT_MERCHANT_ID
         accessToken = intent.getStringExtra(EXTRA_ACCESS_TOKEN) ?: (tokenManager.getAccessToken() ?: "")
         
         // جلب المبلغ كـ Long بشكل آمن
@@ -173,6 +173,7 @@ class PosActivity : AppCompatActivity() {
         const val EXTRA_MERCHANT_ID = "extra_merchant_id"
         const val EXTRA_ACCESS_TOKEN = "extra_access_token"
         const val EXTRA_AMOUNT = "extra_amount"
+        const val DEFAULT_MERCHANT_ID = "777000000"
     }
 
     /** معالجة الدفع عبر SDK */
@@ -183,7 +184,7 @@ class PosActivity : AppCompatActivity() {
         val chargeRequest = ChargeRequest(
             amount = finalAmount,
             currency = "YER",
-            merchantId = "DEMO_MERCHANT",
+            merchantId = DEFAULT_MERCHANT_ID,
             atheerToken = capturedAtheerToken
         )
 
@@ -197,7 +198,7 @@ class PosActivity : AppCompatActivity() {
                         putExtra(TransactionResultActivity.EXTRA_TRANSACTION_ID, response.transactionId)
                         putExtra(TransactionResultActivity.EXTRA_AMOUNT, finalAmount.toDouble()) // إعادته لـ Double للواجهة
                         putExtra(TransactionResultActivity.EXTRA_CURRENCY, "YER")
-                        putExtra(TransactionResultActivity.EXTRA_MERCHANT_ID, "DEMO_MERCHANT")
+                        putExtra(TransactionResultActivity.EXTRA_MERCHANT_ID, DEFAULT_MERCHANT_ID)
                         putExtra(TransactionResultActivity.EXTRA_TIMESTAMP, transaction.timestamp)
                         putExtra(TransactionResultActivity.EXTRA_IS_SUCCESS, true)
                         putExtra(TransactionResultActivity.EXTRA_IS_SYNCED, true)
